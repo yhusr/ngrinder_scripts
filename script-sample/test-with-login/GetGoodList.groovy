@@ -1,3 +1,6 @@
+import com.alibaba.fastjson.JSONObject
+import com.sun.deploy.net.HttpResponse
+
 import static net.grinder.script.Grinder.grinder
 import static org.junit.Assert.*
 import static org.hamcrest.Matchers.*
@@ -38,10 +41,11 @@ class GetGoodList {
     public static HTTPRequest request
     public static NVPair[] headers = []
     public static String body = "{\n\"mobile\":\"15800000002\",\n\"password\":\"123456\"\n}"
-    public static NVPair[] params = []
+    public static NVPair[] params_list = []
     public static Cookie[] cookies = []
     public static String login_url = "http://192.168.31.250:8080/app/mobile/api/user/login"
     public static String goods_url="http://192.168.31.250:8080/app/mobile/api/order/getorders"
+    public static String token
 
     @BeforeProcess
     public static void beforeProcess() {
@@ -50,7 +54,7 @@ class GetGoodList {
         request = new HTTPRequest()
         // Set header datas
         List<NVPair> headerList = new ArrayList<NVPair>()
-        headerList.add(new NVPair("", ""))
+        headerList.add(new NVPair("Content-Type", "application/json"))
         headers = headerList.toArray()
         grinder.logger.info("before process.");
     }
@@ -72,16 +76,31 @@ class GetGoodList {
     @Test
     public void test(){
         loginTest();
+        goodsList();
     }
     public void loginTest(){
         HTTPResponse result = request.POST(login_url, body.getBytes())
         grinder.logger.info("返回的结果是：" + result.getText());
-
+        JSONObject jsonObject = JSONObject.parse(result.getText());
+        int code = jsonObject.getIntValue("code");
+        grinder.logger.info("code:" + code);
+        token = (String)jsonObject.getJSONObject("data").get("token")
+        grinder.logger.info("token:" + token)
 //        if (result.statusCode == 301 || result.statusCode == 302) {
 //            grinder.logger.warn("Warning. The response may not be correct. The response code was {}.", result.statusCode);
 //        } else {
 //            assertThat(result.statusCode, is(200));
 //            assertThat(result.text,containsString("\"code\":0,\""));
 //        }
+    }
+    public void goodsList(){
+        List<NVPair> params = new ArrayList<NVPair>()
+        params.add(new NVPair("offset","0"))
+        params.add(new NVPair("token",token))
+        params_list = params.toArray()
+        HTTPResponse result1 = request.GET(goods_url,params_list)
+        grinder.logger.info("goodslist:" + result1.getText());
+        JSONObject jsonObject = JSONObject.parse(result1.getText())
+        assertThat(result1.getText(),containsString("\"code\":0,"))
     }
 }
