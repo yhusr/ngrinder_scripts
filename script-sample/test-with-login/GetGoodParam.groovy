@@ -1,31 +1,24 @@
-import com.alibaba.fastjson.JSONObject
-import com.sun.deploy.net.HttpResponse
-import net.grinder.scriptengine.groovy.junit.annotation.RunRate
-
-import static net.grinder.script.Grinder.grinder
-import static org.junit.Assert.*
-import static org.hamcrest.Matchers.*
-import net.grinder.plugin.http.HTTPRequest
-import net.grinder.plugin.http.HTTPPluginControl
-import net.grinder.script.GTest
-import net.grinder.script.Grinder
-import net.grinder.scriptengine.groovy.junit.GrinderRunner
-import net.grinder.scriptengine.groovy.junit.annotation.BeforeProcess
-import net.grinder.scriptengine.groovy.junit.annotation.BeforeThread
-// import static net.grinder.util.GrinderUtils.* // You can use this if you're using nGrinder after 3.2.3
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-
-import java.util.Date
-import java.util.List
-import java.util.ArrayList
-
 import HTTPClient.Cookie
 import HTTPClient.CookieModule
 import HTTPClient.HTTPResponse
 import HTTPClient.NVPair
+import com.alibaba.fastjson.JSONObject
+import net.grinder.plugin.http.HTTPPluginControl
+import net.grinder.plugin.http.HTTPRequest
+import net.grinder.script.GTest
+import net.grinder.scriptengine.groovy.junit.GrinderRunner
+import net.grinder.scriptengine.groovy.junit.annotation.BeforeProcess
+import net.grinder.scriptengine.groovy.junit.annotation.BeforeThread
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+
+import static net.grinder.script.Grinder.grinder
+import static org.hamcrest.Matchers.containsString
+
+// import static net.grinder.util.GrinderUtils.* // You can use this if you're using nGrinder after 3.2.3
+
+import static org.junit.Assert.assertThat
 
 /**
  * A simple example using the HTTP plugin that shows the retrieval of a
@@ -36,7 +29,7 @@ import HTTPClient.NVPair
  * @author admin
  */
 @RunWith(GrinderRunner)
-class GetGoodList {
+class GetGoodParam {
 
     public static GTest test
     public static HTTPRequest request
@@ -45,8 +38,10 @@ class GetGoodList {
     public static NVPair[] params_list = []
     public static Cookie[] cookies = []
     public static String login_url = "http://192.168.31.250:8080/app/mobile/api/user/login"
-    public static String goods_url="http://192.168.31.250:8080/app/mobile/api/order/getorders"
-    public static String token
+    public static String token = "";
+    public static List<String> fileList;
+    public static int fileIndex = 0;
+    public static String phone = "";
 
     @BeforeProcess
     public static void beforeProcess() {
@@ -58,6 +53,7 @@ class GetGoodList {
         headerList.add(new NVPair("Content-Type", "application/json"))
         headers = headerList.toArray()
         grinder.logger.info("before process.");
+        fileList = new File("G:\\git_project\\nGrinder-master\\script-sample\\test-with-login\\resources\\parm.txt").readLines()
     }
 
     @BeforeThread
@@ -73,12 +69,17 @@ class GetGoodList {
         cookies.each { CookieModule.addCookie(it, HTTPPluginControl.getThreadHTTPClientContext()) }
         grinder.logger.info("before thread. init headers and cookies");
     }
+
     @Test
     public void test(){
         loginTest();
-        goodsList();
     }
     public void loginTest(){
+        //获取parm.txt文件中的参数值
+        fileIndex =  new Random().nextInt(fileList.size());
+        phone = fileList.get(fileIndex);
+        grinder.logger.info("获取的手机号:" + phone);
+
         HTTPResponse result = request.POST(login_url, body.getBytes())
         grinder.logger.info("返回的结果是：" + result.getText());
         JSONObject jsonObject = JSONObject.parse(result.getText());
@@ -93,14 +94,5 @@ class GetGoodList {
 //            assertThat(result.text,containsString("\"code\":0,\""));
 //        }
     }
-    public void goodsList(){
-        List<NVPair> params = new ArrayList<NVPair>()
-        params.add(new NVPair("offset","0"))
-        params.add(new NVPair("token",token))
-        params_list = params.toArray()
-        HTTPResponse result1 = request.GET(goods_url,params_list)
-        grinder.logger.info("goodslist:" + result1.getText());
-        JSONObject jsonObject = JSONObject.parse(result1.getText())
-        assertThat(result1.getText(),containsString("\"code\":0,"))
-    }
+
 }
